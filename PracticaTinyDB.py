@@ -112,12 +112,13 @@ class AdminTarea:
  
 
 
-
 class Interfaz(Tk):
     def __init__(self):
         super().__init__()
         self.title("Administrador de tareas")
         self.geometry("800x700")
+        self.create_window = None
+        self.search_window = None
         self.setup_ui()
         self.load_tasks()
         self.search_window_open = False
@@ -200,19 +201,16 @@ class Interfaz(Tk):
             messagebox.showinfo("Información", "Seleccione una tarea para ocultar.")
 
 
-
-
     def open_create_window(self):
-        if self.create_window_open:
-            messagebox.showinfo("Información", "La ventana de creación de tarea ya está abierta.")
-            self.create_window.lift()
+        if self.create_window and self.create_window.winfo_exists():
             return
 
         create_window = Toplevel(self)
+        self.create_window = create_window
         create_window.title("Crear tarea")
         create_window.protocol("WM_DELETE_WINDOW", self.on_create_window_close)  # Capturar evento de cierre de la ventana
         self.create_window_open = True  # Marcar la ventana de creación de tarea como abierta
-        self.create_window = create_window
+        
 
         label_title = Label(create_window, text="Título:")
         label_title.pack()
@@ -235,12 +233,7 @@ class Interfaz(Tk):
         button_cancel = Button(create_window, text="Cancelar", command=create_window.destroy)
         button_cancel.pack(pady=5)
 
-    def on_create_window_close(self):
-        self.create_window.destroy()
-        self.reset_create_window_open()
-
-    def reset_create_window_open(self):
-        self.create_window_open = False
+    
 
     def save_task(self, title, description, status, create_window):
         current_time = datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
@@ -250,16 +243,15 @@ class Interfaz(Tk):
 
 
     def open_search_window(self):
-        if self.search_window_open:
-            messagebox.showinfo("Información", "La ventana de búsqueda ya está abierta.")
-            self.search_window.lift()
+        if self.search_window and self.search_window.winfo_exists():
             return
 
         search_window = Toplevel(self)
+        self.search_window = search_window
         search_window.title("Buscar tarea")
         search_window.protocol("WM_DELETE_WINDOW", self.on_search_window_close)  # Capturar evento de cierre de la ventana
         self.search_window_open = True  # Marcar la ventana de búsqueda como abierta
-        self.search_window = search_window
+        
 
         label_uid = Label(search_window, text="UID:")
         label_uid.pack()
@@ -269,9 +261,7 @@ class Interfaz(Tk):
         button_search = Button(search_window, text="Buscar", command=lambda: self.search_task_by_uid(entry_uid.get(), search_window))
         button_search.pack(pady=5)
 
-    def on_search_window_close(self):
-        self.search_window_open = False  # Marcar la ventana de búsqueda como cerrada
-        self.focus()
+
 
     def search_task_by_uid(self, uid, search_window):
         if uid.isdigit():
@@ -289,6 +279,12 @@ class Interfaz(Tk):
             messagebox.showerror("Error", "Ingrese un UID válido")
 
         search_window.destroy()
+
+    def close_all_windows(self):
+        windows = [self.create_window, self.search_window]
+        for window in windows:
+            if window and window.winfo_exists():
+                window.destroy()
 
 
     def update_description(self, event):
