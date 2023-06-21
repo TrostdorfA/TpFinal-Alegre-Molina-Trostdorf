@@ -14,6 +14,7 @@ class Interfaz(Tk):
         self.tasks = []  # Lista para almacenar las tareas cargadas desde la API
         self.load_tasks()
         self.current_window = None  # Variable para almacenar la ventana abierta actualmente
+        self.configure(bg="#F0F0F0")  # Cambiar el color de fondo de la ventana principal
 
 
 
