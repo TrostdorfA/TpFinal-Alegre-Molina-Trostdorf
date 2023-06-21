@@ -15,8 +15,6 @@ class Interfaz(Tk):
         self.headers = {}
         self.title("Administrador de tareas")
         self.geometry("800x700")
-        self.setup_ui()
-        self.load_tasks()
         self.current_window = None  # Variable para almacenar la ventana abierta actualmente
         self.autenticado = False  # Variable para almacenar el estado de autenticación
         self.autenticar()
@@ -42,7 +40,7 @@ class Interfaz(Tk):
         button_submit.pack(pady=10)
 
         auth_window.mainloop()
-
+ 
     def verificar_credenciales(self, username, password, auth_window):
         # Conexión a la base de datos
         conn = sqlite3.connect("tareas.db")
@@ -54,17 +52,27 @@ class Interfaz(Tk):
         cursor.execute(query, (username, password_md5))
         result = cursor.fetchone()
 
+        
+
+        # Verificar si se encontraron coincidencias
+        if result:
+        # Actualizar el atributo 'ultimo_acceso' del usuario
+            update_query = "UPDATE usuarios SET ultimo_acceso = ? WHERE nombre = ?"
+            current_datetime = datetime.datetime.now()
+            cursor.execute(update_query, (current_datetime, username))
+            conn.commit()
+
+            auth_window.destroy()  # Cerrar la ventana de autenticación
+            self.autenticado = True  # Actualizar el estado de autenticación
+            self.setup_ui()  # Configurar la interfaz
+            self.load_tasks()  # Cargar las tareas
+        else:
+            messagebox.showerror("Error", "Credenciales inválidas")
+
         # Cerrar la conexión a la base de datos
         cursor.close()
         conn.close()
 
-        # Verificar si se encontraron coincidencias
-        if result:
-            auth_window.destroy()  # Cerrar la ventana de autenticación
-            return True
-        else:
-            messagebox.showerror("Error", "Credenciales inválidas")
-            return False
 
     def setup_ui(self):
         self.button_frame = Frame(self)

@@ -1,4 +1,5 @@
 import datetime
+import os
 from fastapi import FastAPI, Request, Form, Depends, Query, Cookie
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
@@ -9,9 +10,12 @@ import subprocess
 import threading
 import hashlib
 
+db_path = os.path.join(os.path.dirname(__file__), "tareas.db")
+
+
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-conn = sqlite3.connect('tareas.db', check_same_thread=False)
+conn = sqlite3.connect(db_path, check_same_thread=False)
 cursor = conn.cursor()
 
 class ConnectionPool:
@@ -74,11 +78,19 @@ cursor.execute('''
 ''')
 
 contraseña_admin = hashlib.md5("12345".encode()).hexdigest()  # Encriptar la contraseña
-cursor.execute('''
-    INSERT INTO usuarios (nombre, apellido, fecha_nacimiento, dni, contraseña, ultimo_acceso)
-    VALUES (?, ?, ?, ?, ?, ?)
-''', ("Admin", "Admin", "2000-01-01", "123456789", contraseña_admin, None))
-conn.commit()
+
+# Verificar si el usuario "Admin" ya existe
+cursor.execute("SELECT * FROM usuarios WHERE nombre = ?", ("Admin",))
+existing_user = cursor.fetchone()
+
+if existing_user is None:
+    # El usuario no existe, se puede crear
+    cursor.execute('''
+        INSERT INTO usuarios (nombre, apellido, fecha_nacimiento, dni, contraseña, ultimo_acceso)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', ("Admin", "Admin", "2000-01-01", "123456789", contraseña_admin, None))
+    conn.commit()
+
 
 
 class Persona:
