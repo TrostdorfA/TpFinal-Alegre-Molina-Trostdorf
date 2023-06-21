@@ -15,8 +15,8 @@ class Interfaz(Tk):
         self.headers = {}
         self.title("Administrador de tareas")
         self.geometry("800x700")
-        self.current_window = None  # Variable para almacenar la ventana abierta actualmente
-        self.autenticado = False  # Variable para almacenar el estado de autenticación
+        self.current_window = None  
+        self.autenticado = False  
         self.autenticar()
 
     def autenticar(self):
@@ -36,42 +36,29 @@ class Interfaz(Tk):
         entry_password = Entry(auth_window, show="*")
         entry_password.pack()
 
-        button_submit = Button(auth_window, text="Iniciar sesión", command=lambda: self.verificar_credenciales(entry_username.get(), entry_password.get(), auth_window))
+        button_submit = Button(auth_window, text="Iniciar sesión", command=lambda: self.verify_credentials(entry_username.get(), entry_password.get(), auth_window))
         button_submit.pack(pady=10)
 
         auth_window.mainloop()
- 
-    def verificar_credenciales(self, username, password, auth_window):
-        # Conexión a la base de datos
-        conn = sqlite3.connect("tareas.db")
-        cursor = conn.cursor()
 
-        # Consulta para verificar las credenciales
-        query = "SELECT * FROM usuarios WHERE nombre = ? AND contraseña = ?"
-        password_md5 = hashlib.md5(password.encode()).hexdigest()  # Encriptar la contraseña en MD5
-        cursor.execute(query, (username, password_md5))
-        result = cursor.fetchone()
 
-        
+    def verify_credentials(self, username, password, auth_window):
+        payload = {
+            "username": username,
+            "password": password
+        }
 
-        # Verificar si se encontraron coincidencias
-        if result:
-        # Actualizar el atributo 'ultimo_acceso' del usuario
-            update_query = "UPDATE usuarios SET ultimo_acceso = ? WHERE nombre = ?"
-            current_datetime = datetime.datetime.now()
-            cursor.execute(update_query, (current_datetime, username))
-            conn.commit()
+        response = requests.post(f"{API_URL}/login", data=payload)
 
-            auth_window.destroy()  # Cerrar la ventana de autenticación
-            self.autenticado = True  # Actualizar el estado de autenticación
-            self.setup_ui()  # Configurar la interfaz
-            self.load_tasks()  # Cargar las tareas
+        if response.status_code == 200:
+            self.headers["Authorization"] = f"Bearer {response.json().get('token')}"
+            auth_window.destroy()
+            self.authenticated = True
+            self.setup_ui()
+            self.load_tasks()
         else:
             messagebox.showerror("Error", "Credenciales inválidas")
 
-        # Cerrar la conexión a la base de datos
-        cursor.close()
-        conn.close()
 
 
     def setup_ui(self):
@@ -113,13 +100,13 @@ class Interfaz(Tk):
                 self.listbox_tasks.insert("end", task_text)
 
             if tareas:
-                self.update_description_by_uid(tareas[0].get("uid"))  # Actualizar la descripción con la primera tarea
+                self.update_description_by_uid(tareas[0].get("uid"))  
 
         self.update_description(None)
 
     def update_task(self):
         if self.current_window:
-            self.current_window.destroy()  # Cierra la ventana abierta actualmente
+            self.current_window.destroy()  
 
         selected_index = self.listbox_tasks.curselection()
         if selected_index:
@@ -138,7 +125,7 @@ class Interfaz(Tk):
 
     def delete_task(self):
         if self.current_window:
-            self.current_window.destroy()  # Cierra la ventana abierta actualmente
+            self.current_window.destroy()  
 
         selected_index = self.listbox_tasks.curselection()
         if selected_index:
@@ -160,7 +147,7 @@ class Interfaz(Tk):
             button_delete_all = Button(self.current_window, text="Eliminar todas las tareas", command=self.delete_all_tasks)
             button_delete_all.pack(pady=5)
 
-            # Centrar la ventana emergente en la pantalla
+            
             window_width = self.current_window.winfo_reqwidth()
             window_height = self.current_window.winfo_reqheight()
             position_right = int(self.current_window.winfo_screenwidth() / 2 - window_width / 2)
@@ -190,11 +177,11 @@ class Interfaz(Tk):
 
     def open_create_window(self):
         if self.current_window:
-            self.current_window.destroy()  # Cierra la ventana abierta actualmente
+            self.current_window.destroy()  
         create_window = Toplevel(self)
         create_window.title("Crear tarea")
         create_window.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 200, self.winfo_screenheight() / 2 - 150))
-        create_window.grab_set()  # Bloquea la ventana principal hasta que se cierre la ventana emergente
+        create_window.grab_set()  
         self.current_window = create_window
 
         label_title = Label(create_window, text="Título:")
@@ -225,7 +212,7 @@ class Interfaz(Tk):
             "estado": str(estado),
         }
 
-        # Enviar la solicitud POST a la API
+        
         response = requests.post(f"{API_URL}/agregar", json=payload)
         self.load_tasks()
         create_window.destroy()
@@ -234,11 +221,11 @@ class Interfaz(Tk):
 
     def open_search_window(self):
         if self.current_window:
-            self.current_window.destroy()  # Cierra la ventana abierta actualmente
+            self.current_window.destroy() 
         search_window = Toplevel(self)
         search_window.title("Buscar tarea")
         search_window.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 200, self.winfo_screenheight() / 2 - 150))
-        search_window.grab_set()  # Bloquea la ventana principal hasta que se cierre la ventana emergente
+        search_window.grab_set()  
         self.current_window = search_window
 
         label_uid = Label(search_window, text="UID:")
@@ -264,10 +251,10 @@ class Interfaz(Tk):
                     self.listbox_tasks.selection_clear(0, "end")
                     self.listbox_tasks.selection_set(index)
                     self.listbox_tasks.see(index)
-                    self.update_description_by_uid(uid)  # Actualizar la descripción
+                    self.update_description_by_uid(uid) 
                     messagebox.showinfo("Información", "Tarea encontrada: {}".format(tarea["titulo"]))
                 else:
-                    self.label_description.config(text="")  # Limpiar la descripción si no se encuentra la tarea
+                    self.label_description.config(text="")  
                     messagebox.showinfo("Información", "No se encontró ninguna tarea con el UID: {}".format(uid))
             else:
                 messagebox.showerror("Error", "Error al buscar la tarea")
@@ -285,16 +272,15 @@ class Interfaz(Tk):
             self.label_description.config(text="")
 
     def update_description(self, event):
-        # Obtener el índice de la tarea seleccionada en la Listbox
         index = self.listbox_tasks.curselection()
 
         if index:
-            # Obtener la tarea seleccionada
+            
             tarea_text = self.listbox_tasks.get(index)
             tarea_uid = tarea_text.split(" | ")[0]
             tarea = TpFinal.AdminTarea.__traer_tarea__(int(tarea_uid))
 
-            # Actualizar la etiqueta de descripción con los datos de la tarea
+            
             descripcion = f"UID: {tarea.uid}\nTítulo: {tarea.titulo}\nDescripción: {tarea.descripcion}\nEstado: {tarea.estado}\nCreada: {tarea.creada}\nActualizada: {tarea.actualizada}"
             self.label_description.config(text=descripcion)
         else:
@@ -307,7 +293,6 @@ class Interfaz(Tk):
     
 
 def cerrar_aplicacion():
-# Detener el servidor de la API
     if TpFinal.proceso_servidor:
         TpFinal.proceso_servidor.terminate()
     app.quit()

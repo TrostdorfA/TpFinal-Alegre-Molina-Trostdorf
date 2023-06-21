@@ -9,6 +9,8 @@ from sqlite3 import Error
 import subprocess
 import threading
 import hashlib
+import secrets
+
 
 db_path = os.path.join(os.path.dirname(__file__), "tareas.db")
 
@@ -77,14 +79,14 @@ cursor.execute('''
     )
 ''')
 
-contraseña_admin = hashlib.md5("12345".encode()).hexdigest()  # Encriptar la contraseña
+contraseña_admin = hashlib.md5("12345".encode()).hexdigest()  
 
-# Verificar si el usuario "Admin" ya existe
+
 cursor.execute("SELECT * FROM usuarios WHERE nombre = ?", ("Admin",))
 existing_user = cursor.fetchone()
 
 if existing_user is None:
-    # El usuario no existe, se puede crear
+   
     cursor.execute('''
         INSERT INTO usuarios (nombre, apellido, fecha_nacimiento, dni, contraseña, ultimo_acceso)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -196,11 +198,43 @@ def get_current_user(nombre: str = Cookie(None), contraseña: str = Cookie(None)
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     return usuario
 
+
+def generate_token(username):
+    token = secrets.token_hex(16)
+    return f"{username}:{token}"
    
 @app.get("/")
 def read_root(request: Request, usuario: Usuario = Depends(get_current_user)):
     tareas = AdminTarea.__traer_todas_tareas__()
     return templates.TemplateResponse("index.html", {"request": request, "tareas": tareas})
+
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):
+    cursor.execute("SELECT * FROM usuarios WHERE nombre = ?", (username,))
+    user = cursor.fetchone()
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    hashed_password = hashlib.md5(password.encode()).hexdigest()
+
+    if user[5] != hashed_password:
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    access_token = generate_token(user[0])
+    response = JSONResponse({"token": access_token})
+
+    response.set_cookie(key="nombre", value=user[1])
+    response.set_cookie(key="password", value=user[5])
+
+
+    update_query = "UPDATE usuarios SET ultimo_acceso = ? WHERE nombre = ?"
+    current_datetime = datetime.datetime.now()
+    cursor.execute(update_query, (current_datetime, username))    
+    conn.commit()
+
+    return response
+
 
     
 @app.get("/tasks")
