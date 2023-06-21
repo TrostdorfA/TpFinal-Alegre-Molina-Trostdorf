@@ -180,4 +180,4 @@ def buscar_tarea(uid: int):
 
 def iniciar_servidor():
     global proceso_servidor 
-    proceso_servidor= subprocess.Popen(["uvicorn", "TpFinal:app", "--reload"])
+    proceso_servidor= subprocess.Popen(["python", "-m","uvicorn", "TpFinal:app", "--reload"])
