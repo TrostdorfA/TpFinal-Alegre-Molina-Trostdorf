@@ -125,24 +125,21 @@ class AdminTarea:
         tareas_db = cursor.fetchall()
         tareas = []
         for tarea in tareas_db:
-            if tarea_db is not None:
-                tareas.append(Tarea(
-                    tarea[0],  # uid
-                    tarea[1],  # titulo
-                    tarea[2],  # descripcion
-                    tarea[3],  # estado
-                    tarea[4],  # creada
-                    tarea[5],  # actualizada
-                ))
-            else:
-                return None
+            tareas.append({
+                "uid": tarea[0],
+                "titulo": tarea[1],
+                "descripcion": tarea[2],
+                "estado": tarea[3],
+                "creada": tarea[4],
+                "actualizada": tarea[5]
+            })
         return tareas
    
 
 @app.get("/")
 def read_root(request: Request):
     tareas = AdminTarea.__traer_todas_tareas__()
-    return templates.TemplateResponse("index.html", {"request": request, "tareas": tareas})
+    return JSONResponse(content={"tareas": tareas})
 
 
 @app.post("/agregar")
@@ -180,7 +177,7 @@ def buscar_tarea(uid: int):
         return {"tarea": tarea}
     else:
         return {"tarea": None}
- 
+
 def iniciar_servidor():
     global proceso_servidor 
     proceso_servidor= subprocess.Popen(["uvicorn", "TpFinal:app", "--reload"])

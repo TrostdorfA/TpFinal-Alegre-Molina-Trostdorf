@@ -11,6 +11,7 @@ class Interfaz(Tk):
         self.title("Administrador de tareas")
         self.geometry("800x700")
         self.setup_ui()
+        self.tasks = []  # Lista para almacenar las tareas cargadas desde la API
         self.load_tasks()
         self.current_window = None  # Variable para almacenar la ventana abierta actualmente
 
@@ -34,29 +35,55 @@ class Interfaz(Tk):
 
         self.listbox_tasks = Listbox(self, width=100, height=30)
         self.listbox_tasks.pack(padx=10, pady=10)
-        self.listbox_tasks.bind("<<ListboxSelect>>", self.update_description)
+        self.listbox_tasks.bind("<<ListboxSelect>>", self.select_task)
 
         self.label_description = Label(self, text="", wraplength=700, justify="left")
         self.label_description.pack(padx=10, pady=(0, 10))
 
+    def load_tasks(self, update_description=True):
+        response = requests.get(f"{API_URL}")  # Hacer una solicitud GET a la API
+        if response.status_code == 200:
+            data = response.json()  # Obtener los datos en formato JSON
+            self.tasks = data.get("tareas", [])  # Obtener la lista de tareas del campo "tareas" en los datos
+            self.listbox_tasks.delete(0, "end")  # Limpiar la lista actual de tareas
+            for tarea in self.tasks:
+                uid = tarea["uid"]
+                titulo = tarea["titulo"]
+                estado = tarea["estado"]
+                creada = tarea["creada"]
+                actualizada = tarea["actualizada"]
+                task_text = f"{uid} | {titulo} | Estado: {estado} | Creación: {creada} | Actualización: {actualizada}"
+                self.listbox_tasks.insert("end", task_text)
 
-    def load_tasks(self):
-        self.listbox_tasks.delete(0, "end")
-        TpFinal.cursor.execute("SELECT * FROM tareas")
-        tareas = TpFinal.cursor.fetchall()
-        for tarea in tareas:
-            uid = tarea[0]
-            titulo = tarea[1]
-            estado = tarea[3]
-            creada = tarea[4]
-            actualizada = tarea[5]
-            task_text = f"{uid} | {titulo} | Estado: {estado} | Creación: {creada} | Actualización: {actualizada}"
-            self.listbox_tasks.insert("end", task_text)
+            if update_description and self.tasks:
+                tarea = self.tasks[0]
+                descripcion = f"UID: {tarea['uid']}\nTítulo: {tarea['titulo']}\nDescripción: {tarea['descripcion']}\nEstado: {tarea['estado']}\nCreada: {tarea['creada']}\nActualizada: {tarea['actualizada']}"
+                self.label_description.config(text=descripcion)
+            else:
+                self.label_description.config(text="")
+        else:
+            self.label_description.config(text="Error al cargar las tareas")
 
-        if tareas:
-            self.update_description_by_uid(tareas[0][0])  # Actualizar la descripción con la primera tarea
+    def select_task(self, event):
+        # Obtener el índice de la tarea seleccionada en la Listbox
+        index = self.listbox_tasks.curselection()
+        if index:
+            # Obtener la tarea seleccionada de self.tasks
+            tarea_text = self.listbox_tasks.get(index)
+            tarea_uid = tarea_text.split(" | ")[0]
+            for tarea in self.tasks:
+                if tarea["uid"] == int(tarea_uid):
+                    descripcion = f"UID: {tarea['uid']}\nTítulo: {tarea['titulo']}\nDescripción: {tarea['descripcion']}\nEstado: {tarea['estado']}\nCreada: {tarea['creada']}\nActualizada: {tarea['actualizada']}"
+                    self.label_description.config(text=descripcion)
+                    tarea_encontrada = True
+                    break
 
-        self.update_description(None)
+            if tarea_encontrada:
+                self.label_description.config(text=descripcion)
+            else:
+                self.label_description.config(text="")
+        else:
+            self.label_description.config(text="")
 
     def update_task(self):
         if self.current_window:
@@ -70,7 +97,7 @@ class Interfaz(Tk):
             if update_text:
                 response = requests.get(f"{API_URL}/actualizar/{tarea_uid}", params={"estado": update_text})
                 if response.status_code == 200:
-                    self.load_tasks()
+                    self.load_tasks(update_description=False)
                     messagebox.showinfo("Información", "Tarea actualizada con éxito!")
                 else:
                     messagebox.showerror("Error", "Error al actualizar la tarea")
@@ -113,7 +140,7 @@ class Interfaz(Tk):
     def delete_selected_task(self, uid):
         response = requests.get(f"{API_URL}/eliminar/{uid}")
         if response.status_code == 200:
-            self.load_tasks()
+            self.load_tasks(update_description=False)
             self.current_window.destroy()
             messagebox.showinfo("Información", "Tarea eliminada con éxito!")
         else:
@@ -122,7 +149,7 @@ class Interfaz(Tk):
     def delete_all_tasks(self):
         response = requests.get(f"{API_URL}/eliminar-todas")
         if response.status_code == 200:
-            self.load_tasks()
+            self.load_tasks(update_description=False)
             self.current_window.destroy()
             messagebox.showinfo("Información", "Todas las tareas han sido eliminadas.")
         else:
@@ -168,7 +195,7 @@ class Interfaz(Tk):
 
         # Enviar la solicitud POST a la API
         response = requests.post(f"{API_URL}/agregar", json=payload)
-        self.load_tasks()
+        self.load_tasks(update_description=False)
         create_window.destroy()
         messagebox.showinfo("Información", "Tarea creada con éxito!")
 
@@ -190,60 +217,34 @@ class Interfaz(Tk):
         button_search = Button(search_window, text="Buscar", command=lambda: self.search_task_by_uid(entry_uid.get(), search_window))
         button_search.pack(pady=5)
 
-        button_cancel = Button(search_window, text="Cancelar", command=self.cancel_search)
+        button_cancel = Button(search_window, text="Cancelar", command=search_window.destroy)
         button_cancel.pack(pady=5)
 
     def search_task_by_uid(self, uid, search_window):
         if uid.isdigit():
             uid = int(uid)
-            response = requests.get(f"{API_URL}/buscar/{uid}")
-            if response.status_code == 200:
-                data = response.json()
-                tarea = data.get("tarea")
-                if tarea:
-                    index = uid - 1
-                    self.listbox_tasks.selection_clear(0, "end")
-                    self.listbox_tasks.selection_set(index)
-                    self.listbox_tasks.see(index)
-                    self.update_description_by_uid(uid)  # Actualizar la descripción
-                    messagebox.showinfo("Información", "Tarea encontrada: {}".format(tarea["titulo"]))
-                else:
-                    self.label_description.config(text="")  # Limpiar la descripción si no se encuentra la tarea
-                    messagebox.showinfo("Información", "No se encontró ninguna tarea con el UID: {}".format(uid))
+            tarea_encontrada = None
+
+            for tarea in self.tasks:
+                if tarea["uid"] == uid:
+                    tarea_encontrada = tarea
+                    break
+
+            if tarea_encontrada:
+                index = uid - 1
+                self.listbox_tasks.selection_clear(0, "end")
+                self.listbox_tasks.selection_set(index)
+                self.listbox_tasks.see(index)
+
+                descripcion = f"UID: {tarea_encontrada['uid']}\nTítulo: {tarea_encontrada['titulo']}\nDescripción: {tarea_encontrada['descripcion']}\nEstado: {tarea_encontrada['estado']}\nCreada: {tarea_encontrada['creada']}\nActualizada: {tarea_encontrada['actualizada']}"
+                self.label_description.config(text=descripcion)
+                search_window.destroy()
+                messagebox.showinfo("Información", "Tarea encontrada: {}".format(tarea_encontrada["titulo"]))
             else:
-                messagebox.showerror("Error", "Error al buscar la tarea")
+                self.label_description.config(text="")  # Limpiar la descripción si no se encuentra la tarea
+                messagebox.showinfo("Información", "No se encontró ninguna tarea con el UID: {}".format(uid))
         else:
             messagebox.showerror("Error", "Ingrese un UID válido")
-
-        search_window.destroy()
-
-    def update_description_by_uid(self, uid):
-        tarea = TpFinal.AdminTarea.__traer_tarea__(uid)
-        if tarea:
-            descripcion = f"UID: {tarea.uid}\nTítulo: {tarea.titulo}\nDescripción: {tarea.descripcion}\nEstado: {tarea.estado}\nCreada: {tarea.creada}\nActualizada: {tarea.actualizada}"
-            self.label_description.config(text=descripcion)
-        else:
-            self.label_description.config(text="")
-
-    def update_description(self, event):
-        # Obtener el índice de la tarea seleccionada en la Listbox
-        index = self.listbox_tasks.curselection()
-
-        if index:
-            # Obtener la tarea seleccionada
-            tarea_text = self.listbox_tasks.get(index)
-            tarea_uid = tarea_text.split(" | ")[0]
-            tarea = TpFinal.AdminTarea.__traer_tarea__(int(tarea_uid))
-
-            # Actualizar la etiqueta de descripción con los datos de la tarea
-            descripcion = f"UID: {tarea.uid}\nTítulo: {tarea.titulo}\nDescripción: {tarea.descripcion}\nEstado: {tarea.estado}\nCreada: {tarea.creada}\nActualizada: {tarea.actualizada}"
-            self.label_description.config(text=descripcion)
-        else:
-            self.label_description.config(text="")
-
-    def cancel_search(self):
-        if self.current_window:
-            self.current_window.destroy()
 
 def cerrar_aplicacion():
 # Detener el servidor de la API
