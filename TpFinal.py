@@ -1,6 +1,5 @@
 import datetime
 from fastapi import FastAPI, Request, Form, Depends, Query
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
 import sqlite3
@@ -11,7 +10,6 @@ import hashlib
 import secrets
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 conn = sqlite3.connect('tareas.db', check_same_thread=False)
 cursor = conn.cursor()
 
