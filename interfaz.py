@@ -1,4 +1,4 @@
-Dfrom tkinter import Listbox, messagebox, simpledialog
+from tkinter import Listbox, messagebox, simpledialog
 import TpFinal
 import requests
 import threading
