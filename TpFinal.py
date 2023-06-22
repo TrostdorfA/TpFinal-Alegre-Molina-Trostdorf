@@ -13,7 +13,6 @@ app = FastAPI()
 conn = sqlite3.connect('tareas.db', check_same_thread=False)
 cursor = conn.cursor()
 
-
 class ConnectionPool:
     def __init__(self, max_connections):
         self.max_connections = max_connections
@@ -54,6 +53,7 @@ async def validation_exception_handler(request, exc):
 async def http_exception_handler(request, exc):
     return JSONResponse(status_code=exc.status_code, content={"message": exc.detail})
 
+# Creacion de tablas en base de datos
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS tareas (
         uid INTEGER PRIMARY KEY,
@@ -78,8 +78,10 @@ cursor.execute('''
     )
 ''')
 
+# Contraseña de administrador
 contraseña_admin = hashlib.md5("12345".encode()).hexdigest()
 
+# Verificar si el usuario administrador ya existe en la base de datos
 cursor.execute("SELECT * FROM usuarios WHERE nombre = ?", ("Admin",))
 existing_user = cursor.fetchone()
 
@@ -184,18 +186,18 @@ class AdminTarea:
             })
         return tareas
 
-
+# Genera el token para el usuario logueado
 def generate_token(username):
     token = secrets.token_hex(16)
     return f"{username}:{token}"
 
-
+# Envia actualizacion de todas las tareas
 @app.get("/")
 def read_root(request: Request):
     tareas = AdminTarea.__traer_todas_tareas__()
     return JSONResponse(content={"tareas": tareas})
 
-
+# Verifica credenciales del usuario y le da un token
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
     cursor.execute("SELECT * FROM usuarios WHERE nombre = ?", (username,))
@@ -222,7 +224,7 @@ async def login(username: str = Form(...), password: str = Form(...)):
 
     return response
 
-
+# Recibe los datos de la tarea a agregar y la guarda en la base de datos
 @app.post("/agregar")
 def agregar_tarea(request: Request, tarea: dict):
     titulo = tarea.get("titulo")
@@ -232,25 +234,25 @@ def agregar_tarea(request: Request, tarea: dict):
     actualizada = creada
     AdminTarea.agregar_tarea(titulo, descripcion, estado, creada, actualizada)
 
-
+# Recibe uid de tarea a eliminar y la elimina de la base de datos
 @app.get("/eliminar/{uid}")
 def eliminar_tarea(uid: int):
     AdminTarea.eliminar_tarea(uid)
     return {"success": True}
 
-
+# Recibe llamada y elimina todas las tareas de la base de datos
 @app.get("/eliminar-todas")
 def eliminar_todas_tareas():
     AdminTarea.eliminar_todas_las_tareas()
     return {"success": True}
 
-
+# Recibe uid y estado de la tarea a actualizar y la actualiza en la base de datos
 @app.get("/actualizar/{uid}")
 def actualizar_estado(uid: int, estado: str = Query(...)):
     AdminTarea.actualizar_estado(uid, estado)
     return {"success": True}
 
-
+# Recibe uid y busca y devuelve la tarea de la base de datos
 @app.get("/buscar/{uid}")
 def buscar_tarea(uid: int):
     tarea = AdminTarea.__traer_tarea__(uid)
@@ -259,7 +261,7 @@ def buscar_tarea(uid: int):
     else:
         return {"tarea": None}
 
-
+# Inicia el servidor uvicorn para la API
 def iniciar_servidor():
     global proceso_servidor
     proceso_servidor = subprocess.Popen(

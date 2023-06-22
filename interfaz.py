@@ -5,7 +5,7 @@ import threading
 from customtkinter import CTkLabel, CTkEntry, CTkButton, CTkToplevel, CTkFrame, CTk
 API_URL = "http://localhost:8000"
 
-
+# Clase principal que representa la interfaz de usuario
 class Interfaz(CTk):
     def __init__(self):
         super().__init__()
@@ -20,6 +20,7 @@ class Interfaz(CTk):
         self.autenticar()
         self.autenticado = False
 
+    # Ventana de error
     def show_error_message(self, message, title):
         error_window = CTkToplevel()
         error_window.title(title)
@@ -40,6 +41,8 @@ class Interfaz(CTk):
         # Asegurarse de que la ventana principal quede bloqueada mientras la ventana de error esté abierta
         self.wait_window(error_window)
 
+
+    # Ventana de autenticación
     def autenticar(self):
         auth_window = CTkToplevel(self)
         auth_window.title("Autenticación")
@@ -62,6 +65,8 @@ class Interfaz(CTk):
         CTkButton(auth_window, text="Ingresar", command=lambda: self.verify_credentials(
             username_entry.get(), password_entry.get(), auth_window)).pack(pady=5)
 
+
+    # Ventana verificacion de credenciales del usuario
     def verify_credentials(self, username, password, auth_window):
         payload = {"username": username, "password": password}
         response = requests.post(f"{API_URL}/login", data=payload)
@@ -119,6 +124,8 @@ class Interfaz(CTk):
             self, text="", wraplength=700, justify="left")
         self.CTkLabel_description.pack(padx=10, pady=(0, 10))
 
+
+    # Carga las tareas desde el servidor y las guarda en la lista de tareas
     def load_tasks(self, update_description=True):
         response = requests.get(f"{API_URL}")
         if response.status_code == 200:
@@ -144,6 +151,7 @@ class Interfaz(CTk):
             self.CTkLabel_description.configure(
                 text="Error al cargar las tareas")
 
+    # Muestra la descripción de la tarea seleccionada
     def select_task(self, event):
         index = self.listbox_tasks.curselection()
         if index:
@@ -162,7 +170,8 @@ class Interfaz(CTk):
                 self.CTkLabel_description.configure(text="")
         else:
             self.CTkLabel_description.configure(text="")
-
+    
+    # Ventana para actualizar una tarea
     def open_update_window(self):
         if self.current_window:
             self.current_window.destroy()
@@ -193,6 +202,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Seleccione una tarea para actualizar.", "Información")
 
+    # Actualiza tarea seleccionada
     def update_selected_task(self, uid, estado):
         response = requests.get(
             f"{API_URL}/actualizar/{uid}", params={"estado": estado})
@@ -203,6 +213,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Error al actualizar la tarea", "Error")
 
+    # Ventana eliminar tareas
     def delete_task(self):
         if self.current_window:
             self.current_window.destroy()
@@ -234,6 +245,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Seleccione una tarea para eliminar.", "Información")
 
+    # Elimina la tarea seleccionada
     def delete_selected_task(self, uid):
         response = requests.get(f"{API_URL}/eliminar/{uid}")
         if response.status_code == 200:
@@ -243,6 +255,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Error al eliminar la tarea", "Error")
 
+    # Elimina todas las tareas
     def delete_all_tasks(self):
         response = requests.get(f"{API_URL}/eliminar-todas")
         if response.status_code == 200:
@@ -252,6 +265,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Error al eliminar todas las tareas.", "Error")
 
+    #Ventana de creacion de tarea
     def open_create_window(self):
         if self.current_window:
             self.current_window.destroy()
@@ -286,6 +300,7 @@ class Interfaz(CTk):
             create_window, text="Cancelar", command=create_window.destroy)
         CTkButton_cancel.pack(pady=5)
 
+    # Guarda la tarea en la base de datos
     def save_task(self, titulo, descripcion, estado, create_window):
         if not titulo:
             self.show_error_message("Por favor, complete titulo de la tarea", "Error")
@@ -307,6 +322,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Error al guardar la tarea", "Error")
 
+    # Ventana buscar tarea
     def open_search_window(self):
         if self.current_window:
             self.current_window.destroy()
@@ -331,6 +347,7 @@ class Interfaz(CTk):
             search_window, text="Cancelar", command=search_window.destroy)
         CTkButton_cancel.pack(pady=5)
 
+    # Busca la tarea por uid en la lista de tareas
     def search_task_by_uid(self, uid, search_window):
         if uid.isdigit():
             uid = int(uid)
@@ -358,7 +375,7 @@ class Interfaz(CTk):
         else:
             self.show_error_message("Error, Ingrese un UID válido", "Error de UID")
 
-
+# Apaga el servidor uvicorn cuando se cierra la aplicacion
 def cerrar_aplicacion():
     if TpFinal.proceso_servidor:
         TpFinal.proceso_servidor.terminate()
