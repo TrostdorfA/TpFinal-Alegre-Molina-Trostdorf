@@ -1,14 +1,16 @@
-from tkinter import Tk, Label, Entry, Button, Listbox, messagebox, Toplevel, Frame, simpledialog
+from tkinter import Listbox, messagebox, simpledialog
 import TpFinal
 import datetime
 import requests
 import threading
+from customtkinter import CTkLabel, CTkEntry, CTkButton, CTkToplevel, CTkFrame, CTk
 API_URL = "http://localhost:8000"
 
-class Interfaz(Tk):
+class Interfaz(CTk):
     def __init__(self):
         super().__init__()
         self.title("Administrador de tareas")
+        self.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 450, self.winfo_screenheight() / 2 - 350))
         self.geometry("800x700")
         self.setup_ui()
         self.tasks = []  # Lista para almacenar las tareas cargadas desde la API
@@ -16,30 +18,29 @@ class Interfaz(Tk):
         self.current_window = None  # Variable para almacenar la ventana abierta actualmente
         self.configure(bg="#F0F0F0")  # Cambiar el color de fondo de la ventana principal
 
-
-
     def setup_ui(self):
-        self.button_frame = Frame(self)
-        self.button_frame.pack(side="right", padx=10, pady=10)
+        self.CTkButton_CTkFrame = CTkFrame(self)
+        self.CTkButton_CTkFrame.pack(side="right", padx=10, pady=10)
 
-        self.button_create = Button(self.button_frame, text="Crear", command=self.open_create_window)
-        self.button_create.pack(side="top", pady=5)
+        self.CTkButton_create = CTkButton(self.CTkButton_CTkFrame, text="Crear", command=self.open_create_window)
+        self.CTkButton_create.pack(side="top", pady=5)
 
-        self.button_search = Button(self.button_frame, text="Buscar", command=self.open_search_window)
-        self.button_search.pack(side="top", pady=5)
+        self.CTkButton_search = CTkButton(self.CTkButton_CTkFrame, text="Buscar", command=self.open_search_window)
+        self.CTkButton_search.pack(side="top", pady=5)
 
-        self.button_update = Button(self.button_frame, text="Actualizar", command=self.update_task)
-        self.button_update.pack(side="top", pady=5)
+        self.CTkButton_update = CTkButton(self.CTkButton_CTkFrame, text="Actualizar", command=self.open_update_window)
+        self.CTkButton_update.pack(side="top", pady=5)
 
-        self.button_delete = Button(self.button_frame, text="Eliminar", command=self.delete_task)
-        self.button_delete.pack(side="top", pady=5)
+        self.CTkButton_delete = CTkButton(self.CTkButton_CTkFrame, text="Eliminar", command=self.delete_task)
+        self.CTkButton_delete.pack(side="top", pady=5)
 
         self.listbox_tasks = Listbox(self, width=100, height=30)
         self.listbox_tasks.pack(padx=10, pady=10)
         self.listbox_tasks.bind("<<ListboxSelect>>", self.select_task)
+        self.listbox_tasks.configure(bg="#F0F0F0")  # Cambiar el color de fondo de la lista de tareas
 
-        self.label_description = Label(self, text="", wraplength=700, justify="left")
-        self.label_description.pack(padx=10, pady=(0, 10))
+        self.CTkLabel_description = CTkLabel(self, text="", wraplength=700, justify="left")
+        self.CTkLabel_description.pack(padx=10, pady=(0, 10))
 
     def load_tasks(self, update_description=True):
         response = requests.get(f"{API_URL}")  # Hacer una solicitud GET a la API
@@ -59,11 +60,11 @@ class Interfaz(Tk):
             if update_description and self.tasks:
                 tarea = self.tasks[0]
                 descripcion = f"UID: {tarea['uid']}\nTítulo: {tarea['titulo']}\nDescripción: {tarea['descripcion']}\nEstado: {tarea['estado']}\nCreada: {tarea['creada']}\nActualizada: {tarea['actualizada']}"
-                self.label_description.config(text=descripcion)
+                self.CTkLabel_description.configure(text=descripcion)
             else:
-                self.label_description.config(text="")
+                self.CTkLabel_description.configure(text="")
         else:
-            self.label_description.config(text="Error al cargar las tareas")
+            self.CTkLabel_description.configure(text="Error al cargar las tareas")
 
     def select_task(self, event):
         # Obtener el índice de la tarea seleccionada en la Listbox
@@ -75,35 +76,72 @@ class Interfaz(Tk):
             for tarea in self.tasks:
                 if tarea["uid"] == int(tarea_uid):
                     descripcion = f"UID: {tarea['uid']}\nTítulo: {tarea['titulo']}\nDescripción: {tarea['descripcion']}\nEstado: {tarea['estado']}\nCreada: {tarea['creada']}\nActualizada: {tarea['actualizada']}"
-                    self.label_description.config(text=descripcion)
+                    self.CTkLabel_description.configure(text=descripcion)
                     tarea_encontrada = True
                     break
 
             if tarea_encontrada:
-                self.label_description.config(text=descripcion)
+                self.CTkLabel_description.configure(text=descripcion)
             else:
-                self.label_description.config(text="")
+                self.CTkLabel_description.configure(text="")
         else:
-            self.label_description.config(text="")
+            self.CTkLabel_description.configure(text="")
 
-    def update_task(self):
+    # def update_task(self):
+    #     if self.current_window:
+    #         self.current_window.destroy()  # Cierra la ventana abierta actualmente
+
+    #     selected_index = self.listbox_tasks.curselection()
+    #     if selected_index:
+    #         tarea_text = self.listbox_tasks.get(selected_index[0])
+    #         tarea_uid = tarea_text.split(" | ")[0]
+    #         update_text = simpledialog.askstring("Actualizar Tarea", "Ingrese el nuevo estado:")
+    #         if update_text:
+    #             response = requests.get(f"{API_URL}/actualizar/{tarea_uid}", params={"estado": update_text})
+    #             if response.status_code == 200:
+    #                 self.load_tasks(update_description=False)
+    #                 messagebox.showinfo("Información", "Tarea actualizada con éxito!")
+    #             else:
+    #                 messagebox.showerror("Error", "Error al actualizar la tarea")
+    #     else:
+    #         messagebox.showinfo("Información", "Seleccione una tarea para actualizar.")
+
+    def open_update_window(self):
         if self.current_window:
-            self.current_window.destroy()  # Cierra la ventana abierta actualmente
-
+            self.current_window.destroy()
+    
         selected_index = self.listbox_tasks.curselection()
         if selected_index:
             tarea_text = self.listbox_tasks.get(selected_index[0])
             tarea_uid = tarea_text.split(" | ")[0]
-            update_text = simpledialog.askstring("Actualizar Tarea", "Ingrese el nuevo estado:")
-            if update_text:
-                response = requests.get(f"{API_URL}/actualizar/{tarea_uid}", params={"estado": update_text})
-                if response.status_code == 200:
-                    self.load_tasks(update_description=False)
-                    messagebox.showinfo("Información", "Tarea actualizada con éxito!")
-                else:
-                    messagebox.showerror("Error", "Error al actualizar la tarea")
+
+            self.current_window = CTkToplevel(self)
+            self.current_window.title("Actualizar tarea")
+            self.current_window.geometry("300x150")
+            self.current_window.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 200, self.winfo_screenheight() / 2 - 150))
+            self.current_window.resizable(False, False)
+            self.current_window.attributes("-topmost", True)
+
+            CTkLabel_message = CTkLabel(self.current_window, text="Ingrese el nuevo estado:")
+            CTkLabel_message.pack(padx=10, pady=10)
+
+            self.CTkEntry_message = CTkEntry(self.current_window)
+            self.CTkEntry_message.pack(padx=10, pady=5)
+
+            CTkButton_send = CTkButton(self.current_window, text="Actualizar", command=lambda: self.update_selected_task(tarea_uid, self.CTkEntry_message.get()))
+            CTkButton_send.pack(padx=10, pady=5)
         else:
             messagebox.showinfo("Información", "Seleccione una tarea para actualizar.")
+
+    def update_selected_task(self, uid, estado):
+        response = requests.get(f"{API_URL}/actualizar/{uid}", params={"estado": estado})
+        if response.status_code == 200:
+            self.load_tasks(update_description=False)
+            self.current_window.destroy()
+            messagebox.showinfo("Información", "Tarea actualizada con éxito!")
+        else:
+            messagebox.showerror("Error", "Error al actualizar la tarea")
+
 
     def delete_task(self):
         if self.current_window:
@@ -114,27 +152,21 @@ class Interfaz(Tk):
             tarea_text = self.listbox_tasks.get(selected_index[0])
             tarea_uid = tarea_text.split(" | ")[0]
  
-            self.current_window = Toplevel(self)
+            self.current_window = CTkToplevel(self)
             self.current_window.title("Eliminar tarea")
             self.current_window.geometry("300x150")
+            self.current_window.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 200, self.winfo_screenheight() / 2 - 150))
             self.current_window.resizable(False, False)
             self.current_window.attributes("-topmost", True)
 
-            label_message = Label(self.current_window, text="¿Qué acción desea realizar?")
-            label_message.pack(pady=10)
+            CTkLabel_message = CTkLabel(self.current_window, text="¿Qué acción desea realizar?")
+            CTkLabel_message.pack(pady=10)
 
-            button_delete_selected = Button(self.current_window, text="Eliminar tarea seleccionada", command=lambda: self.delete_selected_task(tarea_uid))
-            button_delete_selected.pack(pady=5)
+            CTkButton_delete_selected = CTkButton(self.current_window, text="Eliminar tarea seleccionada", command=lambda: self.delete_selected_task(tarea_uid))
+            CTkButton_delete_selected.pack(pady=5)
 
-            button_delete_all = Button(self.current_window, text="Eliminar todas las tareas", command=self.delete_all_tasks)
-            button_delete_all.pack(pady=5)
-
-            # Centrar la ventana emergente en la pantalla
-            window_width = self.current_window.winfo_reqwidth()
-            window_height = self.current_window.winfo_reqheight()
-            position_right = int(self.current_window.winfo_screenwidth() / 2 - window_width / 2)
-            position_down = int(self.current_window.winfo_screenheight() / 2 - window_height / 2)
-            self.current_window.geometry("+{}+{}".format(position_right, position_down))
+            CTkButton_delete_all = CTkButton(self.current_window, text="Eliminar todas las tareas", command=self.delete_all_tasks)
+            CTkButton_delete_all.pack(pady=5)
         else:
             messagebox.showinfo("Información", "Seleccione una tarea para eliminar.")
 
@@ -160,32 +192,33 @@ class Interfaz(Tk):
     def open_create_window(self):
         if self.current_window:
             self.current_window.destroy()  # Cierra la ventana abierta actualmente
-        create_window = Toplevel(self)
+        create_window = CTkToplevel(self)
         create_window.title("Crear tarea")
+        create_window.geometry("300x250")
         create_window.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 200, self.winfo_screenheight() / 2 - 150))
         create_window.grab_set()  # Bloquea la ventana principal hasta que se cierre la ventana emergente
         self.current_window = create_window
 
-        label_title = Label(create_window, text="Título:")
-        label_title.pack()
-        entry_title = Entry(create_window)
-        entry_title.pack()
+        CTkLabel_title = CTkLabel(create_window, text="Título:")
+        CTkLabel_title.pack()
+        CTkEntry_title = CTkEntry(create_window)
+        CTkEntry_title.pack()
 
-        label_description = Label(create_window, text="Descripción:")
-        label_description.pack()
-        entry_description = Entry(create_window)
-        entry_description.pack()
+        CTkLabel_description = CTkLabel(create_window, text="Descripción:")
+        CTkLabel_description.pack()
+        CTkEntry_description = CTkEntry(create_window)
+        CTkEntry_description.pack()
 
-        label_status = Label(create_window, text="Estado:")
-        label_status.pack()
-        entry_status = Entry(create_window)
-        entry_status.pack()
+        CTkLabel_status = CTkLabel(create_window, text="Estado:")
+        CTkLabel_status.pack()
+        CTkEntry_status = CTkEntry(create_window)
+        CTkEntry_status.pack()
 
-        button_save = Button(create_window, text="Guardar", command=lambda: self.save_task(entry_title.get(), entry_description.get(), entry_status.get(), create_window))
-        button_save.pack(pady=5)
+        CTkButton_save = CTkButton(create_window, text="Guardar", command=lambda: self.save_task(CTkEntry_title.get(), CTkEntry_description.get(), CTkEntry_status.get(), create_window))
+        CTkButton_save.pack(pady=5)
 
-        button_cancel = Button(create_window, text="Cancelar", command=create_window.destroy)
-        button_cancel.pack(pady=5)
+        CTkButton_cancel = CTkButton(create_window, text="Cancelar", command=create_window.destroy)
+        CTkButton_cancel.pack(pady=5)
 
     def save_task(self, titulo, descripcion, estado, create_window):
         payload = {
@@ -204,22 +237,23 @@ class Interfaz(Tk):
     def open_search_window(self):
         if self.current_window:
             self.current_window.destroy()  # Cierra la ventana abierta actualmente
-        search_window = Toplevel(self)
+        search_window = CTkToplevel(self)
         search_window.title("Buscar tarea")
+        search_window.geometry("300x150")
         search_window.geometry("+%d+%d" % (self.winfo_screenwidth() / 2 - 200, self.winfo_screenheight() / 2 - 150))
         search_window.grab_set()  # Bloquea la ventana principal hasta que se cierre la ventana emergente
         self.current_window = search_window
 
-        label_uid = Label(search_window, text="UID:")
-        label_uid.pack()
-        entry_uid = Entry(search_window)
-        entry_uid.pack()
+        CTkLabel_uid = CTkLabel(search_window, text="UID:")
+        CTkLabel_uid.pack()
+        CTkEntry_uid = CTkEntry(search_window)
+        CTkEntry_uid.pack()
 
-        button_search = Button(search_window, text="Buscar", command=lambda: self.search_task_by_uid(entry_uid.get(), search_window))
-        button_search.pack(pady=5)
+        CTkButton_search = CTkButton(search_window, text="Buscar", command=lambda: self.search_task_by_uid(CTkEntry_uid.get(), search_window))
+        CTkButton_search.pack(pady=5)
 
-        button_cancel = Button(search_window, text="Cancelar", command=search_window.destroy)
-        button_cancel.pack(pady=5)
+        CTkButton_cancel = CTkButton(search_window, text="Cancelar", command=search_window.destroy)
+        CTkButton_cancel.pack(pady=5)
 
     def search_task_by_uid(self, uid, search_window):
         if uid.isdigit():
@@ -238,11 +272,11 @@ class Interfaz(Tk):
                 self.listbox_tasks.see(index)
 
                 descripcion = f"UID: {tarea_encontrada['uid']}\nTítulo: {tarea_encontrada['titulo']}\nDescripción: {tarea_encontrada['descripcion']}\nEstado: {tarea_encontrada['estado']}\nCreada: {tarea_encontrada['creada']}\nActualizada: {tarea_encontrada['actualizada']}"
-                self.label_description.config(text=descripcion)
+                self.CTkLabel_description.configure(text=descripcion)
                 search_window.destroy()
                 messagebox.showinfo("Información", "Tarea encontrada: {}".format(tarea_encontrada["titulo"]))
             else:
-                self.label_description.config(text="")  # Limpiar la descripción si no se encuentra la tarea
+                self.CTkLabel_description.configure(text="")  # Limpiar la descripción si no se encuentra la tarea
                 messagebox.showinfo("Información", "No se encontró ninguna tarea con el UID: {}".format(uid))
         else:
             messagebox.showerror("Error", "Ingrese un UID válido")
