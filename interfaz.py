@@ -53,8 +53,9 @@ class Interfaz(CTk):
             self.setup_ui()
             self.load_tasks()
         else:
+            # Mostrar un mensaje de error si las credenciales son inválidas y cerrar la ventana de tareas
             messagebox.showerror("Error", "Credenciales inválidas")
-            
+            self.destroy()
 
     def setup_ui(self):
         self.CTkButton_CTkFrame = CTkFrame(self)
