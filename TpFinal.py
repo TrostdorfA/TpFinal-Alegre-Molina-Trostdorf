@@ -93,8 +93,6 @@ if existing_user is None:
     ''', ("Admin", "Admin", "2000-01-01", "123456789", contraseña_admin, None))
     conn.commit()
 
-
-
 class Persona:
     def __init__(self, id, nombre, apellido, fecha_nacimiento, dni):
         self.id = id
@@ -111,8 +109,6 @@ class Usuario(Persona):
 
     def registrar_acceso(self):
         self.ultimo_acceso = datetime.datetime.now()
-
-
 
 
 class Tarea:
@@ -179,24 +175,16 @@ class AdminTarea:
         tareas_db = cursor.fetchall()
         tareas = []
         for tarea in tareas_db:
-            if tarea is not None:
-                tareas.append(Tarea(
-                    tarea[0],  # uid
-                    tarea[1],  # titulo
-                    tarea[2],  # descripcion
-                    tarea[3],  # estado
-                    tarea[4],  # creada
-                    tarea[5],  # actualizada
-                ))
-            else:
-                return None
+            tareas.append({
+                "uid": tarea[0],
+                "titulo": tarea[1],
+                "descripcion": tarea[2],
+                "estado": tarea[3],
+                "creada": tarea[4],
+                "actualizada": tarea[5]
+            })
         return tareas
     
-def get_current_user(nombre: str = Cookie(None), contraseña: str = Cookie(None)):
-    usuario = Usuario.validar_credenciales(nombre, contraseña)
-    if usuario is None:
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    return usuario
 
 
 def generate_token(username):
@@ -204,9 +192,10 @@ def generate_token(username):
     return f"{username}:{token}"
    
 @app.get("/")
-def read_root(request: Request, usuario: Usuario = Depends(get_current_user)):
+def get_tasks():
     tareas = AdminTarea.__traer_todas_tareas__()
-    return templates.TemplateResponse("index.html", {"request": request, "tareas": tareas})
+    return JSONResponse(content={"tareas": tareas})
+
 
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
@@ -234,13 +223,6 @@ async def login(username: str = Form(...), password: str = Form(...)):
     conn.commit()
 
     return response
-
-
-    
-@app.get("/tasks")
-def get_tasks():
-    tareas = AdminTarea.__traer_todas_tareas__()
-    return {"tareas": tareas}
 
 
 @app.post("/agregar")

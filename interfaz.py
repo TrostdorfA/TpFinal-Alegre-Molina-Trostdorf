@@ -1,10 +1,7 @@
 from tkinter import Tk, Label, Entry, Button, Listbox, messagebox, Toplevel, Frame, simpledialog
 import TpFinal
-import datetime
 import requests
 import threading
-import sqlite3
-import hashlib
 API_URL = "http://localhost:8000"
 
 
@@ -87,7 +84,7 @@ class Interfaz(Tk):
 
     def load_tasks(self):
         self.listbox_tasks.delete(0, "end")
-        response = requests.get(f"{API_URL}/tasks", headers=self.headers)
+        response = requests.get(f"{API_URL}/", headers=self.headers)
         if response.status_code == 200:
             tareas = response.json().get("tareas")
             for tarea in tareas:
@@ -210,9 +207,7 @@ class Interfaz(Tk):
             "titulo": str(titulo),
             "descripcion": str(descripcion),
             "estado": str(estado),
-        }
-
-        
+        } 
         response = requests.post(f"{API_URL}/agregar", json=payload)
         self.load_tasks()
         create_window.destroy()
@@ -285,6 +280,7 @@ class Interfaz(Tk):
             self.label_description.config(text=descripcion)
         else:
             self.label_description.config(text="")
+            
 
     def cancel_search(self):
         if self.current_window:
