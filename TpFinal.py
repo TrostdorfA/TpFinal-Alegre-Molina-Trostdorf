@@ -1,6 +1,5 @@
 import datetime
-import os
-from fastapi import FastAPI, Request, Form, Depends, Query, Cookie
+from fastapi import FastAPI, Request, Form, Depends, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
@@ -11,14 +10,11 @@ import threading
 import hashlib
 import secrets
 
-
-db_path = os.path.join(os.path.dirname(__file__), "tareas.db")
-
-
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-conn = sqlite3.connect(db_path, check_same_thread=False)
+conn = sqlite3.connect('tareas.db', check_same_thread=False)
 cursor = conn.cursor()
+
 
 class ConnectionPool:
     def __init__(self, max_connections):
@@ -39,7 +35,9 @@ class ConnectionPool:
         with self.lock:
             self.connections.append(connection)
 
+
 pool = ConnectionPool(max_connections=10)
+
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
@@ -48,9 +46,11 @@ async def db_session_middleware(request: Request, call_next):
     pool.release_connection(request.state.connection)
     return response
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     return JSONResponse(status_code=400, content={"message": "Validation error"})
+
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
@@ -66,6 +66,7 @@ cursor.execute('''
         actualizada datetime
     )
 ''')
+conn.commit()
 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -79,19 +80,19 @@ cursor.execute('''
     )
 ''')
 
-contraseña_admin = hashlib.md5("12345".encode()).hexdigest()  
-
+contraseña_admin = hashlib.md5("12345".encode()).hexdigest()
 
 cursor.execute("SELECT * FROM usuarios WHERE nombre = ?", ("Admin",))
 existing_user = cursor.fetchone()
 
 if existing_user is None:
-   
+
     cursor.execute('''
         INSERT INTO usuarios (nombre, apellido, fecha_nacimiento, dni, contraseña, ultimo_acceso)
         VALUES (?, ?, ?, ?, ?, ?)
     ''', ("Admin", "Admin", "2000-01-01", "123456789", contraseña_admin, None))
     conn.commit()
+
 
 class Persona:
     def __init__(self, id, nombre, apellido, fecha_nacimiento, dni):
@@ -100,6 +101,7 @@ class Persona:
         self.apellido = apellido
         self.fecha_nacimiento = fecha_nacimiento
         self.dni = dni
+
 
 class Usuario(Persona):
     def __init__(self, id, nombre, apellido, fecha_nacimiento, dni, contraseña):
@@ -145,7 +147,6 @@ class AdminTarea:
         cursor.execute("DELETE FROM tareas WHERE uid = ?", (uid,))
         conn.commit()
 
-        
     @staticmethod
     def eliminar_todas_las_tareas():
         cursor.execute("DELETE FROM tareas")
@@ -184,15 +185,15 @@ class AdminTarea:
                 "actualizada": tarea[5]
             })
         return tareas
-    
 
 
 def generate_token(username):
     token = secrets.token_hex(16)
     return f"{username}:{token}"
-   
+
+
 @app.get("/")
-def get_tasks():
+def read_root(request: Request):
     tareas = AdminTarea.__traer_todas_tareas__()
     return JSONResponse(content={"tareas": tareas})
 
@@ -216,10 +217,9 @@ async def login(username: str = Form(...), password: str = Form(...)):
     response.set_cookie(key="nombre", value=user[1])
     response.set_cookie(key="password", value=user[5])
 
-
     update_query = "UPDATE usuarios SET ultimo_acceso = ? WHERE nombre = ?"
     current_datetime = datetime.datetime.now()
-    cursor.execute(update_query, (current_datetime, username))    
+    cursor.execute(update_query, (current_datetime, username))
     conn.commit()
 
     return response
@@ -248,7 +248,7 @@ def eliminar_todas_tareas():
 
 
 @app.get("/actualizar/{uid}")
-def actualizar_estado(uid: int, estado: str= Query(...)):
+def actualizar_estado(uid: int, estado: str = Query(...)):
     AdminTarea.actualizar_estado(uid, estado)
     return {"success": True}
 
@@ -260,7 +260,9 @@ def buscar_tarea(uid: int):
         return {"tarea": tarea}
     else:
         return {"tarea": None}
- 
+
+
 def iniciar_servidor():
-    global proceso_servidor 
-    proceso_servidor= subprocess.Popen(["uvicorn", "TpFinal:app", "--reload"])
+    global proceso_servidor
+    proceso_servidor = subprocess.Popen(
+        ["python", "-m", "uvicorn", "TpFinal:app", "--reload"])
