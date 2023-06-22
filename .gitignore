@@ -1,2 +1,2 @@
 # Ignora archivo de cache de python
-_pycache_/
+__pycache__/

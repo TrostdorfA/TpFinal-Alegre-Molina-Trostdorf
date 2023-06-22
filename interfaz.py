@@ -1,6 +1,5 @@
 from tkinter import Listbox, messagebox, simpledialog
 import TpFinal
-import datetime
 import requests
 import threading
 from customtkinter import CTkLabel, CTkEntry, CTkButton, CTkToplevel, CTkFrame, CTk
@@ -55,6 +54,7 @@ class Interfaz(CTk):
             self.load_tasks()
         else:
             messagebox.showerror("Error", "Credenciales inválidas")
+            
 
     def setup_ui(self):
         self.CTkButton_CTkFrame = CTkFrame(self)
